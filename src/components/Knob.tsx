@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { useScale } from '../useResponsiveScale';
 
 interface KnobProps {
   label: string;
@@ -41,6 +42,7 @@ export function Knob({
 }: KnobProps) {
   const [dragging, setDragging] = useState(false);
   const dragState = useRef<{ startY: number; startValue: number } | null>(null);
+  const scale = useScale();
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
@@ -54,14 +56,14 @@ export function Knob({
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
       if (!dragState.current) return;
-      const delta = dragState.current.startY - e.clientY;
+      const delta = (dragState.current.startY - e.clientY) / scale;
       const range = max - min;
       let next = dragState.current.startValue + (delta / DRAG_RANGE_PX) * range;
       next = Math.min(max, Math.max(min, next));
       if (step) next = Math.round(next / step) * step;
       onChange(next);
     },
-    [max, min, onChange, step],
+    [max, min, onChange, step, scale],
   );
 
   const handlePointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {

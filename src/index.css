@@ -26,3 +26,19 @@ body {
 * {
   box-sizing: border-box;
 }
+
+.portrait-hint {
+  display: none;
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  .app-shell {
+    display: none;
+  }
+  .portrait-hint {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+  }
+}
