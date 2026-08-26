@@ -116,21 +116,21 @@ function advanceLane(
 
 export function useSynthEngine() {
   const [osc1, setOsc1] = useState<OscillatorSettings>(() => ({
-    ...defaultOsc('sawtooth', -18),
+    ...defaultOsc('square', -18),
     octave: -1,
     subVolume: -30,
   }));
   const [osc2, setOsc2] = useState<OscillatorSettings>(() => defaultOsc('square', -20));
   const [filter, setFilter] = useState<FilterSettings>({
     type: 'lowpass',
-    cutoff: 500,
-    resonance: 2,
+    cutoff: 80,
+    resonance: 10,
   });
   const [ampEnvSettings, setAmpEnvSettings] = useState<EnvelopeSettings>(defaultAmpEnv);
   const [filterEnvSettings, setFilterEnvSettings] = useState<EnvelopeSettings>(defaultFilterEnv);
   const [laneA, setLaneA] = useState<Lane>(defaultLaneA);
   const [laneB, setLaneB] = useState<Lane>(defaultLaneB);
-  const [bpm, setBpm] = useState(92);
+  const [bpm, setBpm] = useState(120);
   const [playing, setPlaying] = useState(false);
   const [currentStepA, setCurrentStepA] = useState<number | null>(null);
   const [currentStepB, setCurrentStepB] = useState<number | null>(null);
@@ -155,9 +155,9 @@ export function useSynthEngine() {
 
   // Build the audio graph once.
   useEffect(() => {
-    const osc1 = new Tone.Oscillator({ type: 'sawtooth', frequency: 'C4' }).start();
+    const osc1 = new Tone.Oscillator({ type: 'square', frequency: 'C4' }).start();
     const osc2 = new Tone.Oscillator({ type: 'square', frequency: 'C4' }).start();
-    const osc1Sub = new Tone.Oscillator({ type: 'sawtooth', frequency: 'C4' }).start();
+    const osc1Sub = new Tone.Oscillator({ type: 'square', frequency: 'C4' }).start();
     const osc2Sub = new Tone.Oscillator({ type: 'square', frequency: 'C4' }).start();
     const osc1Vol = new Tone.Volume(-18);
     const osc2Vol = new Tone.Volume(-20);

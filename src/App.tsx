@@ -19,7 +19,7 @@ export default function App() {
       >
         <div className="flex items-center justify-between">
           <div className="text-[15px] tracking-[3px] text-text">
-            SYNTH<span style={{ color: 'var(--color-accent)' }}>::</span>01
+            SUBHARMONIC SYNTH<span style={{ color: 'var(--color-accent)' }}>::</span>01
           </div>
           <Transport
             playing={engine.playing}
