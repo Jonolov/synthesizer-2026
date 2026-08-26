@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+@theme {
+  --color-bg: #0a0d10;
+  --color-panel-border: #1c2529;
+  --color-text: #c9d1d3;
+  --color-text-dim: #5b6669;
+  --color-text-dimmer: #414c4f;
+  --color-accent: #6dffb8;
+  --color-accent-bright: #9dffce;
+  --color-accent2: #e8b95e;
+  --color-track: #263033;
+  --color-stem: #2d3a3d;
+
+  --font-mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
