@@ -30,7 +30,7 @@ export interface Step {
   note: string;
 }
 
-export const MAX_LANE_STEPS = 8;
+export const MAX_LANE_STEPS = 16;
 export const MAX_LANE_RATE = 4;
 
 export interface Lane {
