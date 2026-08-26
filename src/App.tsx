@@ -9,17 +9,24 @@ import { ScaleToFit } from './useResponsiveScale';
 function PortraitHint() {
   return (
     <div className="portrait-hint flex-col items-center justify-center gap-4 bg-bg p-8 text-center">
-      <svg width={40} height={40} viewBox="0 0 40 40" fill="none">
-        <rect x={13} y={4} width={14} height={24} rx={2} stroke="var(--color-accent)" strokeWidth={1.5} />
-        <line x1={20} y1={9} x2={20} y2={9} stroke="var(--color-accent)" strokeWidth={1.5} strokeLinecap="round" />
+      <svg width={44} height={44} viewBox="0 0 44 44" fill="none">
         <path
-          d="M31 20a11 11 0 1 1 -3.2 -7.7"
-          stroke="var(--color-text-dim)"
+          d="M22 4a18 18 0 1 1 -12.7 5.3"
+          stroke="var(--color-accent)"
           strokeWidth={1.5}
           fill="none"
           strokeLinecap="round"
         />
-        <path d="M31 8v6h-6" stroke="var(--color-text-dim)" strokeWidth={1.5} fill="none" strokeLinecap="round" />
+        <path
+          d="M4.6 11 L9.3 9.3 L7.6 14"
+          stroke="var(--color-accent)"
+          strokeWidth={1.5}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect x={15} y={12} width={14} height={20} rx={2} stroke="var(--color-accent)" strokeWidth={1.5} />
+        <line x1={19} y1={16} x2={25} y2={16} stroke="var(--color-accent)" strokeWidth={1.5} strokeLinecap="round" />
       </svg>
       <div className="text-[11px] tracking-widest text-text">ROTATE YOUR DEVICE</div>
       <div className="text-[10px] leading-relaxed text-text-dim">This synth is built for landscape.</div>
