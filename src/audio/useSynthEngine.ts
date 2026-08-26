@@ -14,17 +14,17 @@ const defaultOsc = (waveform: Waveform, volume: number): OscillatorSettings => (
 });
 
 const defaultAmpEnv = (): EnvelopeSettings => ({
-  attack: 0.01,
-  decay: 0.2,
-  sustain: 0.6,
-  release: 0.3,
+  attack: 0.03,
+  decay: 0.25,
+  sustain: 0.65,
+  release: 0.6,
 });
 
 const defaultFilterEnv = (): EnvelopeSettings => ({
-  attack: 0.01,
-  decay: 0.3,
-  sustain: 0.2,
-  release: 0.4,
+  attack: 0.02,
+  decay: 0.4,
+  sustain: 0.15,
+  release: 0.5,
 });
 
 function laneSteps(pattern: Array<[boolean, string]>): Step[] {
@@ -33,21 +33,23 @@ function laneSteps(pattern: Array<[boolean, string]>): Step[] {
   return steps;
 }
 
+// A natural minor (A-C-E), half-time pulsing root/fifth bassline.
 const defaultLaneA = (): Lane => ({
   steps: laneSteps([
-    [true, 'C4'], [false, 'C4'], [true, 'D4'], [true, 'C4'],
-    [false, 'C4'], [true, 'E4'], [false, 'C4'], [true, 'D4'],
+    [true, 'A3'], [false, 'C4'], [true, 'A3'], [false, 'C4'],
+    [true, 'G3'], [false, 'C4'], [true, 'E3'], [false, 'C4'],
   ]),
   length: 8,
-  rate: 1,
+  rate: 2,
 });
 
+// Sparse minor-triad pad, 5 steps against lane A's 8 for a slow drift.
 const defaultLaneB = (): Lane => ({
   steps: laneSteps([
-    [true, 'G3'], [false, 'C4'], [true, 'C4'], [false, 'C4'], [true, 'E4'],
+    [true, 'E4'], [false, 'C4'], [true, 'C4'], [false, 'C4'], [true, 'A4'],
   ]),
   length: 5,
-  rate: 1,
+  rate: 3,
 });
 
 interface EngineNodes {
@@ -108,18 +110,22 @@ function advanceLane(
 }
 
 export function useSynthEngine() {
-  const [osc1, setOsc1] = useState<OscillatorSettings>(() => defaultOsc('sawtooth', -16));
+  const [osc1, setOsc1] = useState<OscillatorSettings>(() => ({
+    ...defaultOsc('sawtooth', -18),
+    octave: -1,
+    subVolume: -30,
+  }));
   const [osc2, setOsc2] = useState<OscillatorSettings>(() => defaultOsc('square', -20));
   const [filter, setFilter] = useState<FilterSettings>({
     type: 'lowpass',
-    cutoff: 1200,
-    resonance: 1,
+    cutoff: 500,
+    resonance: 2,
   });
   const [ampEnvSettings, setAmpEnvSettings] = useState<EnvelopeSettings>(defaultAmpEnv);
   const [filterEnvSettings, setFilterEnvSettings] = useState<EnvelopeSettings>(defaultFilterEnv);
   const [laneA, setLaneA] = useState<Lane>(defaultLaneA);
   const [laneB, setLaneB] = useState<Lane>(defaultLaneB);
-  const [bpm, setBpm] = useState(120);
+  const [bpm, setBpm] = useState(92);
   const [playing, setPlaying] = useState(false);
   const [currentStepA, setCurrentStepA] = useState<number | null>(null);
   const [currentStepB, setCurrentStepB] = useState<number | null>(null);
@@ -148,15 +154,15 @@ export function useSynthEngine() {
     const osc2 = new Tone.Oscillator({ type: 'square', frequency: 'C4' }).start();
     const osc1Sub = new Tone.Oscillator({ type: 'sawtooth', frequency: 'C4' }).start();
     const osc2Sub = new Tone.Oscillator({ type: 'square', frequency: 'C4' }).start();
-    const osc1Vol = new Tone.Volume(-16);
+    const osc1Vol = new Tone.Volume(-18);
     const osc2Vol = new Tone.Volume(-20);
-    const osc1SubVol = new Tone.Volume(-60);
+    const osc1SubVol = new Tone.Volume(-30);
     const osc2SubVol = new Tone.Volume(-60);
-    const filterNode = new Tone.Filter({ type: 'lowpass', Q: 1 });
+    const filterNode = new Tone.Filter({ type: 'lowpass', Q: 2 });
     const ampEnv = new Tone.AmplitudeEnvelope(defaultAmpEnv());
     const filterEnv = new Tone.FrequencyEnvelope({
       ...defaultFilterEnv(),
-      baseFrequency: 1200,
+      baseFrequency: 500,
       octaves: FILTER_ENV_OCTAVES,
     });
 
