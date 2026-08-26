@@ -1,14 +1,18 @@
 import { useCallback, useRef } from 'react';
-import { SEQUENCE_NOTES, type Step } from '../audio/types';
+import { MAX_LANE_RATE, MAX_LANE_STEPS, SEQUENCE_NOTES, type Lane } from '../audio/types';
+import { Knob } from './Knob';
 
-interface SequencerProps {
-  steps: Step[];
+interface SequencerLaneProps {
+  label: string;
+  lane: Lane;
   currentStep: number | null;
   onToggle: (index: number) => void;
   onSetNote: (index: number, note: string) => void;
+  onRateChange: (rate: number) => void;
+  onLengthChange: (length: number) => void;
 }
 
-const TRACK_HEIGHT = 72;
+const TRACK_HEIGHT = 56;
 const NOTE_LABELS = ['C5', 'G4', 'C4', 'G3'];
 
 function noteHeight(note: string) {
@@ -23,7 +27,15 @@ function noteFromY(y: number, height: number) {
   return SEQUENCE_NOTES[idx];
 }
 
-export function Sequencer({ steps, currentStep, onToggle, onSetNote }: SequencerProps) {
+export function SequencerLane({
+  label,
+  lane,
+  currentStep,
+  onToggle,
+  onSetNote,
+  onRateChange,
+  onLengthChange,
+}: SequencerLaneProps) {
   const dragInfo = useRef<{ index: number; wasActive: boolean; moved: boolean; startY: number } | null>(null);
 
   const updateFromPointer = useCallback(
@@ -38,10 +50,10 @@ export function Sequencer({ steps, currentStep, onToggle, onSetNote }: Sequencer
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>, index: number) => {
       e.currentTarget.setPointerCapture(e.pointerId);
-      dragInfo.current = { index, wasActive: steps[index].active, moved: false, startY: e.clientY };
+      dragInfo.current = { index, wasActive: lane.steps[index].active, moved: false, startY: e.clientY };
       updateFromPointer(e, index);
     },
-    [steps, updateFromPointer],
+    [lane.steps, updateFromPointer],
   );
 
   const handlePointerMove = useCallback(
@@ -66,13 +78,35 @@ export function Sequencer({ steps, currentStep, onToggle, onSetNote }: Sequencer
   );
 
   return (
-    <div className="flex flex-grow flex-col gap-3.5">
-      <div className="flex justify-between">
-        <div className="text-[10px] tracking-widest text-text-dim">SEQUENCE</div>
-        <div className="text-[10px] tracking-widest text-text-dim">16 STEPS &middot; 2 OCT</div>
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between">
+        <div className="text-[10px] tracking-widest text-text-dim">{label}</div>
+        <div className="flex items-center gap-4">
+          <Knob
+            label="LEN"
+            value={lane.length}
+            min={1}
+            max={MAX_LANE_STEPS}
+            step={1}
+            size={30}
+            accent="accent2"
+            onChange={(v) => onLengthChange(Math.round(v))}
+          />
+          <Knob
+            label="RATE"
+            value={lane.rate}
+            min={1}
+            max={MAX_LANE_RATE}
+            step={1}
+            size={30}
+            accent="accent2"
+            onChange={(v) => onRateChange(Math.round(v))}
+            formatValue={(v) => `×${v}`}
+          />
+        </div>
       </div>
 
-      <div className="flex flex-grow gap-2.5">
+      <div className="flex gap-2.5">
         <div className="flex w-5 flex-col justify-between py-px text-right text-[8px] tracking-wide text-text-dimmer">
           {NOTE_LABELS.map((n) => (
             <div key={n}>{n}</div>
@@ -86,10 +120,11 @@ export function Sequencer({ steps, currentStep, onToggle, onSetNote }: Sequencer
             ))}
           </div>
 
-          <div className="relative flex h-full items-end gap-1.5" style={{ height: TRACK_HEIGHT }}>
-            {steps.map((step, index) => {
+          <div className="relative flex items-end gap-1.5" style={{ height: TRACK_HEIGHT }}>
+            {lane.steps.map((step, index) => {
               const isPlayhead = currentStep === index;
-              const groupGap = (index + 1) % 4 === 0 && index !== steps.length - 1;
+              const beyondLength = index >= lane.length;
+              const groupGap = (index + 1) % 4 === 0 && index !== lane.steps.length - 1;
               const h = noteHeight(step.note);
               return (
                 <div
@@ -98,7 +133,7 @@ export function Sequencer({ steps, currentStep, onToggle, onSetNote }: Sequencer
                   onPointerMove={(e) => handlePointerMove(e, index)}
                   onPointerUp={() => handlePointerUp(index)}
                   className="relative h-full flex-1 touch-none"
-                  style={{ marginRight: groupGap ? 12 : 0 }}
+                  style={{ marginRight: groupGap ? 12 : 0, opacity: beyondLength ? 0.25 : 1 }}
                 >
                   {isPlayhead && (
                     <div
@@ -137,13 +172,6 @@ export function Sequencer({ steps, currentStep, onToggle, onSetNote }: Sequencer
             })}
           </div>
         </div>
-      </div>
-
-      <div className="flex pl-[30px] text-[9px] tracking-wide text-text-dimmer">
-        <div className="flex-[4]">1</div>
-        <div className="flex-[4]">5</div>
-        <div className="flex-[4]">9</div>
-        <div className="flex-[4]">13</div>
       </div>
     </div>
   );

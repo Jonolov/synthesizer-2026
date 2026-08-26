@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Tone from 'tone';
-import { STEP_COUNT } from './types';
-import type { EnvelopeSettings, FilterSettings, OscillatorSettings, Step, Waveform } from './types';
+import { MAX_LANE_STEPS } from './types';
+import type { EnvelopeSettings, FilterSettings, Lane, LaneId, OscillatorSettings, Step, Waveform } from './types';
 
 const defaultOsc = (waveform: Waveform, volume: number): OscillatorSettings => ({
   waveform,
@@ -9,6 +9,8 @@ const defaultOsc = (waveform: Waveform, volume: number): OscillatorSettings => (
   volume,
   octave: 0,
   semitones: 0,
+  subDivide: 2,
+  subVolume: -60,
 });
 
 const defaultAmpEnv = (): EnvelopeSettings => ({
@@ -25,29 +27,85 @@ const defaultFilterEnv = (): EnvelopeSettings => ({
   release: 0.4,
 });
 
-const defaultSteps = (): Step[] => {
-  const pattern: Array<[boolean, string]> = [
+function laneSteps(pattern: Array<[boolean, string]>): Step[] {
+  const steps = pattern.map(([active, note]) => ({ active, note }));
+  while (steps.length < MAX_LANE_STEPS) steps.push({ active: false, note: 'C4' });
+  return steps;
+}
+
+const defaultLaneA = (): Lane => ({
+  steps: laneSteps([
     [true, 'C4'], [false, 'C4'], [true, 'D4'], [true, 'C4'],
     [false, 'C4'], [true, 'E4'], [false, 'C4'], [true, 'D4'],
-    [true, 'C4'], [false, 'C4'], [true, 'D4'], [false, 'C4'],
-    [true, 'C4'], [true, 'E4'], [false, 'C4'], [true, 'G3'],
-  ];
-  return pattern.map(([active, note]) => ({ active, note }));
-};
+  ]),
+  length: 8,
+  rate: 1,
+});
+
+const defaultLaneB = (): Lane => ({
+  steps: laneSteps([
+    [true, 'G3'], [false, 'C4'], [true, 'C4'], [false, 'C4'], [true, 'E4'],
+  ]),
+  length: 5,
+  rate: 1,
+});
 
 interface EngineNodes {
   osc1: Tone.Oscillator;
   osc2: Tone.Oscillator;
+  osc1Sub: Tone.Oscillator;
+  osc2Sub: Tone.Oscillator;
   osc1Vol: Tone.Volume;
   osc2Vol: Tone.Volume;
+  osc1SubVol: Tone.Volume;
+  osc2SubVol: Tone.Volume;
   filter: Tone.Filter;
   ampEnv: Tone.AmplitudeEnvelope;
   filterEnv: Tone.FrequencyEnvelope;
-  sequence: Tone.Sequence<number>;
+  masterLoop: Tone.Loop;
+}
+
+interface LaneRuntime {
+  counter: number;
+  index: number;
+}
+
+interface OscPitch {
+  octave: number;
+  semitones: number;
+  subDivide: number;
 }
 
 const FILTER_ENV_OCTAVES = 4;
 const GATE_RATIO = 0.85;
+
+function advanceLane(
+  runtime: LaneRuntime,
+  laneRef: { current: Lane },
+  applyFreq: (note: string) => void,
+) {
+  const lane = laneRef.current;
+  const length = Math.max(1, lane.length);
+  if (runtime.index >= length) runtime.index = 0;
+  const playedIndex = runtime.index;
+
+  let triggered = false;
+  if (runtime.counter === 0) {
+    const step = lane.steps[playedIndex];
+    if (step?.active) {
+      applyFreq(step.note);
+      triggered = true;
+    }
+  }
+
+  const rate = Math.max(1, lane.rate);
+  runtime.counter = (runtime.counter + 1) % rate;
+  if (runtime.counter === 0) {
+    runtime.index = (playedIndex + 1) % length;
+  }
+
+  return { triggered, playedIndex };
+}
 
 export function useSynthEngine() {
   const [osc1, setOsc1] = useState<OscillatorSettings>(() => defaultOsc('sawtooth', -16));
@@ -59,28 +117,41 @@ export function useSynthEngine() {
   });
   const [ampEnvSettings, setAmpEnvSettings] = useState<EnvelopeSettings>(defaultAmpEnv);
   const [filterEnvSettings, setFilterEnvSettings] = useState<EnvelopeSettings>(defaultFilterEnv);
-  const [steps, setSteps] = useState<Step[]>(defaultSteps);
+  const [laneA, setLaneA] = useState<Lane>(defaultLaneA);
+  const [laneB, setLaneB] = useState<Lane>(defaultLaneB);
   const [bpm, setBpm] = useState(120);
   const [playing, setPlaying] = useState(false);
-  const [currentStep, setCurrentStep] = useState<number | null>(null);
+  const [currentStepA, setCurrentStepA] = useState<number | null>(null);
+  const [currentStepB, setCurrentStepB] = useState<number | null>(null);
 
   const nodesRef = useRef<EngineNodes | null>(null);
-  const stepsRef = useRef<Step[]>(steps);
-  const pitchRef = useRef({
-    osc1: { octave: osc1.octave, semitones: osc1.semitones },
-    osc2: { octave: osc2.octave, semitones: osc2.semitones },
+  const laneARef = useRef(laneA);
+  const laneBRef = useRef(laneB);
+  const laneARuntime = useRef<LaneRuntime>({ counter: 0, index: 0 });
+  const laneBRuntime = useRef<LaneRuntime>({ counter: 0, index: 0 });
+  const pitchRef = useRef<{ osc1: OscPitch; osc2: OscPitch }>({
+    osc1: { octave: osc1.octave, semitones: osc1.semitones, subDivide: osc1.subDivide },
+    osc2: { octave: osc2.octave, semitones: osc2.semitones, subDivide: osc2.subDivide },
   });
 
   useEffect(() => {
-    stepsRef.current = steps;
-  }, [steps]);
+    laneARef.current = laneA;
+  }, [laneA]);
+
+  useEffect(() => {
+    laneBRef.current = laneB;
+  }, [laneB]);
 
   // Build the audio graph once.
   useEffect(() => {
     const osc1 = new Tone.Oscillator({ type: 'sawtooth', frequency: 'C4' }).start();
     const osc2 = new Tone.Oscillator({ type: 'square', frequency: 'C4' }).start();
+    const osc1Sub = new Tone.Oscillator({ type: 'sawtooth', frequency: 'C4' }).start();
+    const osc2Sub = new Tone.Oscillator({ type: 'square', frequency: 'C4' }).start();
     const osc1Vol = new Tone.Volume(-16);
     const osc2Vol = new Tone.Volume(-20);
+    const osc1SubVol = new Tone.Volume(-60);
+    const osc2SubVol = new Tone.Volume(-60);
     const filterNode = new Tone.Filter({ type: 'lowpass', Q: 1 });
     const ampEnv = new Tone.AmplitudeEnvelope(defaultAmpEnv());
     const filterEnv = new Tone.FrequencyEnvelope({
@@ -91,40 +162,59 @@ export function useSynthEngine() {
 
     osc1.chain(osc1Vol, filterNode);
     osc2.chain(osc2Vol, filterNode);
+    osc1Sub.chain(osc1SubVol, filterNode);
+    osc2Sub.chain(osc2SubVol, filterNode);
     filterNode.connect(ampEnv);
     ampEnv.toDestination();
     filterEnv.connect(filterNode.frequency);
 
-    const sequence = new Tone.Sequence<number>(
-      (time, index) => {
-        const step = stepsRef.current[index];
-        Tone.getDraw().schedule(() => setCurrentStep(index), time);
-        if (!step?.active) return;
+    const gateDuration = () => Tone.Time('16n').toSeconds() * GATE_RATIO;
 
-        const baseFreq = Tone.Frequency(step.note).toFrequency();
-        const p1 = pitchRef.current.osc1;
-        const p2 = pitchRef.current.osc2;
-        osc1.frequency.setValueAtTime(baseFreq * 2 ** (p1.octave + p1.semitones / 12), time);
-        osc2.frequency.setValueAtTime(baseFreq * 2 ** (p2.octave + p2.semitones / 12), time);
+    const masterLoop = new Tone.Loop((time) => {
+      const resultA = advanceLane(laneARuntime.current, laneARef, (note) => {
+        const base = Tone.Frequency(note).toFrequency();
+        const p = pitchRef.current.osc1;
+        const freq = base * 2 ** (p.octave + p.semitones / 12);
+        osc1.frequency.setValueAtTime(freq, time);
+        osc1Sub.frequency.setValueAtTime(freq / Math.max(1, p.subDivide), time);
+      });
+      const resultB = advanceLane(laneBRuntime.current, laneBRef, (note) => {
+        const base = Tone.Frequency(note).toFrequency();
+        const p = pitchRef.current.osc2;
+        const freq = base * 2 ** (p.octave + p.semitones / 12);
+        osc2.frequency.setValueAtTime(freq, time);
+        osc2Sub.frequency.setValueAtTime(freq / Math.max(1, p.subDivide), time);
+      });
 
-        const gateDuration = Tone.Time('16n').toSeconds() * GATE_RATIO;
-        ampEnv.triggerAttackRelease(gateDuration, time);
-        filterEnv.triggerAttackRelease(gateDuration, time);
-      },
-      Array.from({ length: STEP_COUNT }, (_, i) => i),
-      '16n',
-    );
-    sequence.loop = true;
-    sequence.start(0);
+      if (resultA.triggered || resultB.triggered) {
+        const dur = gateDuration();
+        ampEnv.triggerAttackRelease(dur, time);
+        filterEnv.triggerAttackRelease(dur, time);
+      }
 
-    nodesRef.current = { osc1, osc2, osc1Vol, osc2Vol, filter: filterNode, ampEnv, filterEnv, sequence };
+      Tone.getDraw().schedule(() => {
+        setCurrentStepA(resultA.playedIndex);
+        setCurrentStepB(resultB.playedIndex);
+      }, time);
+    }, '16n');
+    masterLoop.start(0);
+
+    nodesRef.current = {
+      osc1, osc2, osc1Sub, osc2Sub,
+      osc1Vol, osc2Vol, osc1SubVol, osc2SubVol,
+      filter: filterNode, ampEnv, filterEnv, masterLoop,
+    };
 
     return () => {
-      sequence.dispose();
+      masterLoop.dispose();
       osc1.dispose();
       osc2.dispose();
+      osc1Sub.dispose();
+      osc2Sub.dispose();
       osc1Vol.dispose();
       osc2Vol.dispose();
+      osc1SubVol.dispose();
+      osc2SubVol.dispose();
       filterNode.dispose();
       ampEnv.dispose();
       filterEnv.dispose();
@@ -137,18 +227,22 @@ export function useSynthEngine() {
     const nodes = nodesRef.current;
     if (!nodes) return;
     nodes.osc1.type = osc1.waveform;
+    nodes.osc1Sub.type = osc1.waveform;
     nodes.osc1.detune.value = osc1.detune;
     nodes.osc1Vol.volume.value = osc1.volume;
-    pitchRef.current.osc1 = { octave: osc1.octave, semitones: osc1.semitones };
+    nodes.osc1SubVol.volume.value = osc1.subVolume;
+    pitchRef.current.osc1 = { octave: osc1.octave, semitones: osc1.semitones, subDivide: osc1.subDivide };
   }, [osc1]);
 
   useEffect(() => {
     const nodes = nodesRef.current;
     if (!nodes) return;
     nodes.osc2.type = osc2.waveform;
+    nodes.osc2Sub.type = osc2.waveform;
     nodes.osc2.detune.value = osc2.detune;
     nodes.osc2Vol.volume.value = osc2.volume;
-    pitchRef.current.osc2 = { octave: osc2.octave, semitones: osc2.semitones };
+    nodes.osc2SubVol.volume.value = osc2.subVolume;
+    pitchRef.current.osc2 = { octave: osc2.octave, semitones: osc2.semitones, subDivide: osc2.subDivide };
   }, [osc2]);
 
   useEffect(() => {
@@ -189,24 +283,39 @@ export function useSynthEngine() {
 
   const stop = useCallback(() => {
     Tone.getTransport().stop();
-    setCurrentStep(null);
+    laneARuntime.current = { counter: 0, index: 0 };
+    laneBRuntime.current = { counter: 0, index: 0 };
+    setCurrentStepA(null);
+    setCurrentStepB(null);
     setPlaying(false);
   }, []);
 
-  const toggleStep = useCallback((index: number) => {
-    setSteps((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], active: !next[index].active };
-      return next;
+  const toggleStep = useCallback((lane: LaneId, index: number) => {
+    const setter = lane === 'A' ? setLaneA : setLaneB;
+    setter((prev) => {
+      const steps = [...prev.steps];
+      steps[index] = { ...steps[index], active: !steps[index].active };
+      return { ...prev, steps };
     });
   }, []);
 
-  const setStepNote = useCallback((index: number, note: string) => {
-    setSteps((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], note, active: true };
-      return next;
+  const setStepNote = useCallback((lane: LaneId, index: number, note: string) => {
+    const setter = lane === 'A' ? setLaneA : setLaneB;
+    setter((prev) => {
+      const steps = [...prev.steps];
+      steps[index] = { ...steps[index], note, active: true };
+      return { ...prev, steps };
     });
+  }, []);
+
+  const setLaneRate = useCallback((lane: LaneId, rate: number) => {
+    const setter = lane === 'A' ? setLaneA : setLaneB;
+    setter((prev) => ({ ...prev, rate }));
+  }, []);
+
+  const setLaneLength = useCallback((lane: LaneId, length: number) => {
+    const setter = lane === 'A' ? setLaneA : setLaneB;
+    setter((prev) => ({ ...prev, length }));
   }, []);
 
   return {
@@ -220,15 +329,19 @@ export function useSynthEngine() {
     setAmpEnvSettings,
     filterEnvSettings,
     setFilterEnvSettings,
-    steps,
+    laneA,
+    laneB,
     toggleStep,
     setStepNote,
+    setLaneRate,
+    setLaneLength,
     bpm,
     setBpm,
     playing,
     play,
     stop,
-    currentStep,
+    currentStepA,
+    currentStepB,
   };
 }
 

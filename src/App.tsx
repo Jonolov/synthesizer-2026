@@ -2,7 +2,7 @@ import { useSynthEngine } from './audio/useSynthEngine';
 import { EnvelopePanel } from './components/EnvelopePanel';
 import { FilterPanel } from './components/FilterPanel';
 import { OscillatorPanel } from './components/OscillatorPanel';
-import { Sequencer } from './components/Sequencer';
+import { SequencerLane } from './components/SequencerLane';
 import { Transport } from './components/Transport';
 
 export default function App() {
@@ -44,12 +44,27 @@ export default function App() {
         <div className="flex flex-grow gap-[26px] border border-panel-border p-5">
           <FilterPanel settings={engine.filter} onChange={engine.setFilter} />
           <div className="w-px bg-panel-border" />
-          <Sequencer
-            steps={engine.steps}
-            currentStep={engine.currentStep}
-            onToggle={engine.toggleStep}
-            onSetNote={engine.setStepNote}
-          />
+          <div className="flex flex-grow flex-col justify-between gap-4">
+            <SequencerLane
+              label="OSC.1 LANE"
+              lane={engine.laneA}
+              currentStep={engine.currentStepA}
+              onToggle={(index) => engine.toggleStep('A', index)}
+              onSetNote={(index, note) => engine.setStepNote('A', index, note)}
+              onRateChange={(rate) => engine.setLaneRate('A', rate)}
+              onLengthChange={(length) => engine.setLaneLength('A', length)}
+            />
+            <div className="h-px bg-panel-border" />
+            <SequencerLane
+              label="OSC.2 LANE"
+              lane={engine.laneB}
+              currentStep={engine.currentStepB}
+              onToggle={(index) => engine.toggleStep('B', index)}
+              onSetNote={(index, note) => engine.setStepNote('B', index, note)}
+              onRateChange={(rate) => engine.setLaneRate('B', rate)}
+              onLengthChange={(length) => engine.setLaneLength('B', length)}
+            />
+          </div>
         </div>
       </div>
     </div>

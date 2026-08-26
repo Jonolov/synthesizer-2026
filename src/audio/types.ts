@@ -15,6 +15,8 @@ export interface OscillatorSettings {
   volume: number;
   octave: number;
   semitones: number;
+  subDivide: number;
+  subVolume: number;
 }
 
 export interface FilterSettings {
@@ -28,7 +30,16 @@ export interface Step {
   note: string;
 }
 
-export const STEP_COUNT = 16;
+export const MAX_LANE_STEPS = 8;
+export const MAX_LANE_RATE = 4;
+
+export interface Lane {
+  steps: Step[];
+  length: number;
+  rate: number;
+}
+
+export type LaneId = 'A' | 'B';
 
 export const SEQUENCE_NOTES = [
   'C5', 'B4', 'A4', 'G4', 'F4', 'E4', 'D4',

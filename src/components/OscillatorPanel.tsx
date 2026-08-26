@@ -50,6 +50,29 @@ export function OscillatorPanel({ label, settings, onChange }: OscillatorPanelPr
           onChange={(volume) => onChange({ ...settings, volume })}
         />
       </div>
+      <div className="mt-1 flex items-center gap-5 border-t border-panel-border pt-3.5">
+        <div className="text-[9px] tracking-widest text-text-dim">SUB</div>
+        <Knob
+          label="DIV"
+          value={settings.subDivide}
+          min={1}
+          max={8}
+          step={1}
+          size={38}
+          accent="accent2"
+          onChange={(subDivide) => onChange({ ...settings, subDivide })}
+          formatValue={(v) => `÷${v}`}
+        />
+        <Knob
+          label="LVL"
+          value={settings.subVolume}
+          min={-60}
+          max={0}
+          size={38}
+          accent="accent2"
+          onChange={(subVolume) => onChange({ ...settings, subVolume })}
+        />
+      </div>
     </div>
   );
 }
