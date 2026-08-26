@@ -1,4 +1,4 @@
-import type { FilterSettings, FilterType } from '../audio/types';
+import type { FilterSettings, FilterType, NoiseSettings, NoiseType } from '../audio/types';
 import { Knob } from './Knob';
 
 const FILTER_TYPES: { type: FilterType; path: string }[] = [
@@ -7,12 +7,16 @@ const FILTER_TYPES: { type: FilterType; path: string }[] = [
   { type: 'bandpass', path: 'M0 9 L7 9 L11 2 L15 9 L20 9' },
 ];
 
+const NOISE_TYPES: NoiseType[] = ['white', 'pink', 'brown'];
+
 interface FilterPanelProps {
   settings: FilterSettings;
   onChange: (settings: FilterSettings) => void;
+  noise: NoiseSettings;
+  onNoiseChange: (settings: NoiseSettings) => void;
 }
 
-export function FilterPanel({ settings, onChange }: FilterPanelProps) {
+export function FilterPanel({ settings, onChange, noise, onNoiseChange }: FilterPanelProps) {
   return (
     <div className="flex w-[176px] shrink-0 flex-col gap-4">
       <div className="text-[10px] tracking-widest text-text-dim">FILTER</div>
@@ -58,6 +62,39 @@ export function FilterPanel({ settings, onChange }: FilterPanelProps) {
           size={56}
           onChange={(resonance) => onChange({ ...settings, resonance })}
           formatValue={(v) => v.toFixed(1)}
+        />
+      </div>
+
+      <div className="mt-1 flex items-center gap-4 border-t border-panel-border pt-3.5">
+        <div className="text-[9px] tracking-widest text-text-dim">NOISE</div>
+        <div className="flex gap-1">
+          {NOISE_TYPES.map((type) => {
+            const active = type === noise.type;
+            return (
+              <button
+                key={type}
+                type="button"
+                aria-label={type}
+                onClick={() => onNoiseChange({ ...noise, type })}
+                className="flex h-[22px] w-[22px] items-center justify-center border text-[8px] uppercase"
+                style={{
+                  borderColor: active ? 'var(--color-accent2)' : 'var(--color-panel-border)',
+                  color: active ? 'var(--color-accent2)' : 'var(--color-text-dim)',
+                }}
+              >
+                {type[0]}
+              </button>
+            );
+          })}
+        </div>
+        <Knob
+          label="LVL"
+          value={noise.volume}
+          min={-60}
+          max={0}
+          size={38}
+          accent="accent2"
+          onChange={(volume) => onNoiseChange({ ...noise, volume })}
         />
       </div>
     </div>

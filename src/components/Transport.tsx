@@ -1,12 +1,24 @@
+import { Knob } from './Knob';
+
 interface TransportProps {
   playing: boolean;
   bpm: number;
   onBpmChange: (bpm: number) => void;
+  masterVolume: number;
+  onMasterVolumeChange: (volume: number) => void;
   onPlay: () => void;
   onStop: () => void;
 }
 
-export function Transport({ playing, bpm, onBpmChange, onPlay, onStop }: TransportProps) {
+export function Transport({
+  playing,
+  bpm,
+  onBpmChange,
+  masterVolume,
+  onMasterVolumeChange,
+  onPlay,
+  onStop,
+}: TransportProps) {
   return (
     <div className="flex items-center gap-4">
       <button
@@ -51,6 +63,16 @@ export function Transport({ playing, bpm, onBpmChange, onPlay, onStop }: Transpo
           {playing ? 'LOOPING' : 'STOPPED'}
         </div>
       </div>
+
+      <Knob
+        label="MASTER"
+        value={masterVolume}
+        min={-60}
+        max={0}
+        size={30}
+        onChange={onMasterVolumeChange}
+        formatValue={(v) => `${v.toFixed(0)}dB`}
+      />
     </div>
   );
 }

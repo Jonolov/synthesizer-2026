@@ -25,6 +25,8 @@ export default function App() {
             playing={engine.playing}
             bpm={engine.bpm}
             onBpmChange={engine.setBpm}
+            masterVolume={engine.masterVolume}
+            onMasterVolumeChange={engine.setMasterVolume}
             onPlay={engine.play}
             onStop={engine.stop}
           />
@@ -42,7 +44,12 @@ export default function App() {
         </div>
 
         <div className="flex flex-grow gap-[26px] border border-panel-border p-5">
-          <FilterPanel settings={engine.filter} onChange={engine.setFilter} />
+          <FilterPanel
+            settings={engine.filter}
+            onChange={engine.setFilter}
+            noise={engine.noise}
+            onNoiseChange={engine.setNoise}
+          />
           <div className="w-px bg-panel-border" />
           <div className="flex flex-grow flex-col justify-between gap-4">
             <SequencerLane

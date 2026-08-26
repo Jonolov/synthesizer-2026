@@ -25,6 +25,13 @@ export interface FilterSettings {
   resonance: number;
 }
 
+export type NoiseType = 'white' | 'pink' | 'brown';
+
+export interface NoiseSettings {
+  type: NoiseType;
+  volume: number;
+}
+
 export interface Step {
   active: boolean;
   note: string;

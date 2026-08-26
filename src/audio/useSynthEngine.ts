@@ -1,7 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Tone from 'tone';
 import { MAX_LANE_STEPS } from './types';
-import type { EnvelopeSettings, FilterSettings, Lane, LaneId, OscillatorSettings, Step, Waveform } from './types';
+import type {
+  EnvelopeSettings,
+  FilterSettings,
+  Lane,
+  LaneId,
+  NoiseSettings,
+  OscillatorSettings,
+  Step,
+  Waveform,
+} from './types';
+
+const defaultNoise = (): NoiseSettings => ({
+  type: 'white',
+  volume: -60,
+});
 
 const defaultOsc = (waveform: Waveform, volume: number): OscillatorSettings => ({
   waveform,
@@ -66,9 +80,13 @@ interface EngineNodes {
   osc2Vol: Tone.Volume;
   osc1SubVol: Tone.Volume;
   osc2SubVol: Tone.Volume;
+  noise: Tone.Noise;
+  noiseVol: Tone.Volume;
   filter: Tone.Filter;
   ampEnv: Tone.AmplitudeEnvelope;
   filterEnv: Tone.FrequencyEnvelope;
+  masterVol: Tone.Volume;
+  limiter: Tone.Limiter;
   masterLoop: Tone.Loop;
 }
 
@@ -128,6 +146,8 @@ export function useSynthEngine() {
   });
   const [ampEnvSettings, setAmpEnvSettings] = useState<EnvelopeSettings>(defaultAmpEnv);
   const [filterEnvSettings, setFilterEnvSettings] = useState<EnvelopeSettings>(defaultFilterEnv);
+  const [noise, setNoise] = useState<NoiseSettings>(defaultNoise);
+  const [masterVolume, setMasterVolume] = useState(-12);
   const [laneA, setLaneA] = useState<Lane>(defaultLaneA);
   const [laneB, setLaneB] = useState<Lane>(defaultLaneB);
   const [bpm, setBpm] = useState(120);
@@ -163,6 +183,8 @@ export function useSynthEngine() {
     const osc2Vol = new Tone.Volume(-20);
     const osc1SubVol = new Tone.Volume(-30);
     const osc2SubVol = new Tone.Volume(-60);
+    const noiseNode = new Tone.Noise({ type: 'white' }).start();
+    const noiseVolNode = new Tone.Volume(-60);
     const filterNode = new Tone.Filter({ type: 'lowpass', Q: 2 });
     const ampEnv = new Tone.AmplitudeEnvelope(defaultAmpEnv());
     const filterEnv = new Tone.FrequencyEnvelope({
@@ -170,13 +192,16 @@ export function useSynthEngine() {
       baseFrequency: 500,
       octaves: FILTER_ENV_OCTAVES,
     });
+    const masterVolNode = new Tone.Volume(-12);
+    const limiterNode = new Tone.Limiter(-1);
 
     osc1.chain(osc1Vol, filterNode);
     osc2.chain(osc2Vol, filterNode);
     osc1Sub.chain(osc1SubVol, filterNode);
     osc2Sub.chain(osc2SubVol, filterNode);
+    noiseNode.chain(noiseVolNode, filterNode);
     filterNode.connect(ampEnv);
-    ampEnv.toDestination();
+    ampEnv.chain(masterVolNode, limiterNode, Tone.getDestination());
     filterEnv.connect(filterNode.frequency);
 
     const gateDuration = () => Tone.Time('16n').toSeconds() * GATE_RATIO;
@@ -213,7 +238,10 @@ export function useSynthEngine() {
     nodesRef.current = {
       osc1, osc2, osc1Sub, osc2Sub,
       osc1Vol, osc2Vol, osc1SubVol, osc2SubVol,
-      filter: filterNode, ampEnv, filterEnv, masterLoop,
+      noise: noiseNode, noiseVol: noiseVolNode,
+      filter: filterNode, ampEnv, filterEnv,
+      masterVol: masterVolNode, limiter: limiterNode,
+      masterLoop,
     };
 
     return () => {
@@ -226,9 +254,13 @@ export function useSynthEngine() {
       osc2Vol.dispose();
       osc1SubVol.dispose();
       osc2SubVol.dispose();
+      noiseNode.dispose();
+      noiseVolNode.dispose();
       filterNode.dispose();
       ampEnv.dispose();
       filterEnv.dispose();
+      masterVolNode.dispose();
+      limiterNode.dispose();
       nodesRef.current = null;
     };
   }, []);
@@ -281,6 +313,19 @@ export function useSynthEngine() {
     nodes.filterEnv.sustain = filterEnvSettings.sustain;
     nodes.filterEnv.release = filterEnvSettings.release;
   }, [filterEnvSettings]);
+
+  useEffect(() => {
+    const nodes = nodesRef.current;
+    if (!nodes) return;
+    nodes.noise.type = noise.type;
+    nodes.noiseVol.volume.value = noise.volume;
+  }, [noise]);
+
+  useEffect(() => {
+    const nodes = nodesRef.current;
+    if (!nodes) return;
+    nodes.masterVol.volume.value = masterVolume;
+  }, [masterVolume]);
 
   useEffect(() => {
     Tone.getTransport().bpm.value = bpm;
@@ -340,6 +385,10 @@ export function useSynthEngine() {
     setAmpEnvSettings,
     filterEnvSettings,
     setFilterEnvSettings,
+    noise,
+    setNoise,
+    masterVolume,
+    setMasterVolume,
     laneA,
     laneB,
     toggleStep,
