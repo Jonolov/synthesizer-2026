@@ -36,6 +36,7 @@ export function ScaleToFit({ children }: { children: React.ReactNode }) {
       style={{
         width: naturalSize.width ? naturalSize.width * scale : undefined,
         height: naturalSize.height ? naturalSize.height * scale : undefined,
+        overflow: 'hidden',
       }}
     >
       <div ref={contentRef} style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>

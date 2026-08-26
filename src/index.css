@@ -21,14 +21,26 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-mono);
+  overflow-x: hidden;
 }
 
 * {
   box-sizing: border-box;
 }
 
+.app-shell {
+  padding: 16px;
+}
+
 .portrait-hint {
   display: none;
+}
+
+@media (pointer: coarse) and (orientation: landscape) {
+  .app-shell {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
 }
 
 @media (orientation: portrait) and (pointer: coarse) {

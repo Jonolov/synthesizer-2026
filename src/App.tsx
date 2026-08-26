@@ -33,7 +33,7 @@ export default function App() {
   return (
     <>
       <PortraitHint />
-      <div className="app-shell flex min-h-screen items-center justify-center bg-bg p-4">
+      <div className="app-shell flex min-h-screen items-center justify-center bg-bg">
         <ScaleToFit>
           <div
             className="flex w-[960px] flex-col gap-[22px] border border-panel-border p-8"
