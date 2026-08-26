@@ -22,7 +22,7 @@ export function ScaleToFit({ children }: { children: React.ReactNode }) {
       const height = el.offsetHeight;
       if (width === 0 || height === 0) return;
       setNaturalSize({ width, height });
-      const available = window.innerWidth - OUTER_PADDING;
+      const available = document.documentElement.clientWidth - OUTER_PADDING;
       setScale(Math.min(1, available / width));
     };
 
@@ -34,8 +34,8 @@ export function ScaleToFit({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        width: naturalSize.width ? naturalSize.width * scale : undefined,
-        height: naturalSize.height ? naturalSize.height * scale : undefined,
+        width: naturalSize.width ? Math.floor(naturalSize.width * scale) : undefined,
+        height: naturalSize.height ? Math.floor(naturalSize.height * scale) : undefined,
         overflow: 'hidden',
         flexShrink: 0,
       }}
