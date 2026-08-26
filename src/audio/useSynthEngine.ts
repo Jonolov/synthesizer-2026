@@ -8,6 +8,7 @@ const defaultOsc = (waveform: Waveform, volume: number): OscillatorSettings => (
   detune: 0,
   volume,
   octave: 0,
+  semitones: 0,
 });
 
 const defaultAmpEnv = (): EnvelopeSettings => ({
@@ -65,7 +66,10 @@ export function useSynthEngine() {
 
   const nodesRef = useRef<EngineNodes | null>(null);
   const stepsRef = useRef<Step[]>(steps);
-  const octaveRef = useRef({ osc1: osc1.octave, osc2: osc2.octave });
+  const pitchRef = useRef({
+    osc1: { octave: osc1.octave, semitones: osc1.semitones },
+    osc2: { octave: osc2.octave, semitones: osc2.semitones },
+  });
 
   useEffect(() => {
     stepsRef.current = steps;
@@ -98,8 +102,10 @@ export function useSynthEngine() {
         if (!step?.active) return;
 
         const baseFreq = Tone.Frequency(step.note).toFrequency();
-        osc1.frequency.setValueAtTime(baseFreq * 2 ** octaveRef.current.osc1, time);
-        osc2.frequency.setValueAtTime(baseFreq * 2 ** octaveRef.current.osc2, time);
+        const p1 = pitchRef.current.osc1;
+        const p2 = pitchRef.current.osc2;
+        osc1.frequency.setValueAtTime(baseFreq * 2 ** (p1.octave + p1.semitones / 12), time);
+        osc2.frequency.setValueAtTime(baseFreq * 2 ** (p2.octave + p2.semitones / 12), time);
 
         const gateDuration = Tone.Time('16n').toSeconds() * GATE_RATIO;
         ampEnv.triggerAttackRelease(gateDuration, time);
@@ -133,7 +139,7 @@ export function useSynthEngine() {
     nodes.osc1.type = osc1.waveform;
     nodes.osc1.detune.value = osc1.detune;
     nodes.osc1Vol.volume.value = osc1.volume;
-    octaveRef.current.osc1 = osc1.octave;
+    pitchRef.current.osc1 = { octave: osc1.octave, semitones: osc1.semitones };
   }, [osc1]);
 
   useEffect(() => {
@@ -142,7 +148,7 @@ export function useSynthEngine() {
     nodes.osc2.type = osc2.waveform;
     nodes.osc2.detune.value = osc2.detune;
     nodes.osc2Vol.volume.value = osc2.volume;
-    octaveRef.current.osc2 = osc2.octave;
+    pitchRef.current.osc2 = { octave: osc2.octave, semitones: osc2.semitones };
   }, [osc2]);
 
   useEffect(() => {

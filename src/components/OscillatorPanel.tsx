@@ -27,6 +27,15 @@ export function OscillatorPanel({ label, settings, onChange }: OscillatorPanelPr
           formatValue={(v) => (v > 0 ? `+${v}` : `${v}`)}
         />
         <Knob
+          label="SEMI"
+          value={settings.semitones}
+          min={-24}
+          max={24}
+          step={1}
+          onChange={(semitones) => onChange({ ...settings, semitones })}
+          formatValue={(v) => (v > 0 ? `+${v}` : `${v}`)}
+        />
+        <Knob
           label="DETUNE"
           value={settings.detune}
           min={-100}

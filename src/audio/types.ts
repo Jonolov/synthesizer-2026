@@ -14,6 +14,7 @@ export interface OscillatorSettings {
   detune: number;
   volume: number;
   octave: number;
+  semitones: number;
 }
 
 export interface FilterSettings {
