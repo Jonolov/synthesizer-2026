@@ -37,9 +37,13 @@ export function ScaleToFit({ children }: { children: React.ReactNode }) {
         width: naturalSize.width ? naturalSize.width * scale : undefined,
         height: naturalSize.height ? naturalSize.height * scale : undefined,
         overflow: 'hidden',
+        flexShrink: 0,
       }}
     >
-      <div ref={contentRef} style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+      <div
+        ref={contentRef}
+        style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: 'max-content' }}
+      >
         <ScaleContext.Provider value={scale}>{children}</ScaleContext.Provider>
       </div>
     </div>
