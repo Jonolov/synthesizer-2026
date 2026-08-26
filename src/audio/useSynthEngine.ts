@@ -33,22 +33,27 @@ function laneSteps(pattern: Array<[boolean, string]>): Step[] {
   return steps;
 }
 
-// A natural minor (A-C-E), half-time pulsing root/fifth bassline.
+// A minor 7 (A-C-E-G), 16-step walking bassline over two bars at half-time.
 const defaultLaneA = (): Lane => ({
   steps: laneSteps([
-    [true, 'A3'], [false, 'C4'], [true, 'A3'], [false, 'C4'],
-    [true, 'G3'], [false, 'C4'], [true, 'E3'], [false, 'C4'],
+    [true, 'A3'], [false, 'C4'], [true, 'C4'], [false, 'C4'],
+    [true, 'A3'], [true, 'E3'], [false, 'C4'], [true, 'G3'],
+    [true, 'A3'], [false, 'C4'], [true, 'C4'], [false, 'C4'],
+    [true, 'E3'], [false, 'C4'], [true, 'G3'], [false, 'C4'],
   ]),
-  length: 8,
+  length: 16,
   rate: 2,
 });
 
-// Sparse minor-triad pad, 5 steps against lane A's 8 for a slow drift.
+// Am7 arpeggio, 12 steps at a dotted-eighth rate against lane A's 16 --
+// the two lengths and rates only realign every 288 ticks.
 const defaultLaneB = (): Lane => ({
   steps: laneSteps([
-    [true, 'E4'], [false, 'C4'], [true, 'C4'], [false, 'C4'], [true, 'A4'],
+    [true, 'E4'], [false, 'C4'], [true, 'C4'], [true, 'A4'],
+    [false, 'C4'], [true, 'E4'], [true, 'G4'], [false, 'C4'],
+    [true, 'C4'], [true, 'E4'], [false, 'C4'], [true, 'A4'],
   ]),
-  length: 5,
+  length: 12,
   rate: 3,
 });
 
