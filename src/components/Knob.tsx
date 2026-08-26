@@ -9,6 +9,7 @@ interface KnobProps {
   size?: number;
   accent?: 'accent' | 'accent2';
   formatValue?: (value: number) => string;
+  step?: number;
 }
 
 const START_ANGLE = -135;
@@ -36,6 +37,7 @@ export function Knob({
   size = 48,
   accent = 'accent',
   formatValue,
+  step,
 }: KnobProps) {
   const [dragging, setDragging] = useState(false);
   const dragState = useRef<{ startY: number; startValue: number } | null>(null);
@@ -54,10 +56,12 @@ export function Knob({
       if (!dragState.current) return;
       const delta = dragState.current.startY - e.clientY;
       const range = max - min;
-      const next = dragState.current.startValue + (delta / DRAG_RANGE_PX) * range;
-      onChange(Math.min(max, Math.max(min, next)));
+      let next = dragState.current.startValue + (delta / DRAG_RANGE_PX) * range;
+      next = Math.min(max, Math.max(min, next));
+      if (step) next = Math.round(next / step) * step;
+      onChange(next);
     },
-    [max, min, onChange],
+    [max, min, onChange, step],
   );
 
   const handlePointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {

@@ -7,6 +7,7 @@ const defaultOsc = (waveform: Waveform, volume: number): OscillatorSettings => (
   waveform,
   detune: 0,
   volume,
+  octave: 0,
 });
 
 const defaultAmpEnv = (): EnvelopeSettings => ({
@@ -64,6 +65,7 @@ export function useSynthEngine() {
 
   const nodesRef = useRef<EngineNodes | null>(null);
   const stepsRef = useRef<Step[]>(steps);
+  const octaveRef = useRef({ osc1: osc1.octave, osc2: osc2.octave });
 
   useEffect(() => {
     stepsRef.current = steps;
@@ -95,9 +97,9 @@ export function useSynthEngine() {
         Tone.getDraw().schedule(() => setCurrentStep(index), time);
         if (!step?.active) return;
 
-        const freq = Tone.Frequency(step.note).toFrequency();
-        osc1.frequency.setValueAtTime(freq, time);
-        osc2.frequency.setValueAtTime(freq, time);
+        const baseFreq = Tone.Frequency(step.note).toFrequency();
+        osc1.frequency.setValueAtTime(baseFreq * 2 ** octaveRef.current.osc1, time);
+        osc2.frequency.setValueAtTime(baseFreq * 2 ** octaveRef.current.osc2, time);
 
         const gateDuration = Tone.Time('16n').toSeconds() * GATE_RATIO;
         ampEnv.triggerAttackRelease(gateDuration, time);
@@ -131,6 +133,7 @@ export function useSynthEngine() {
     nodes.osc1.type = osc1.waveform;
     nodes.osc1.detune.value = osc1.detune;
     nodes.osc1Vol.volume.value = osc1.volume;
+    octaveRef.current.osc1 = osc1.octave;
   }, [osc1]);
 
   useEffect(() => {
@@ -139,6 +142,7 @@ export function useSynthEngine() {
     nodes.osc2.type = osc2.waveform;
     nodes.osc2.detune.value = osc2.detune;
     nodes.osc2Vol.volume.value = osc2.volume;
+    octaveRef.current.osc2 = osc2.octave;
   }, [osc2]);
 
   useEffect(() => {

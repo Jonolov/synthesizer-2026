@@ -18,6 +18,15 @@ export function OscillatorPanel({ label, settings, onChange }: OscillatorPanelPr
       />
       <div className="mt-1.5 flex gap-5">
         <Knob
+          label="OCT"
+          value={settings.octave}
+          min={-2}
+          max={2}
+          step={1}
+          onChange={(octave) => onChange({ ...settings, octave })}
+          formatValue={(v) => (v > 0 ? `+${v}` : `${v}`)}
+        />
+        <Knob
           label="DETUNE"
           value={settings.detune}
           min={-100}

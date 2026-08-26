@@ -13,6 +13,7 @@ export interface OscillatorSettings {
   waveform: Waveform;
   detune: number;
   volume: number;
+  octave: number;
 }
 
 export interface FilterSettings {
